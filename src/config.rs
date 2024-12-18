@@ -47,7 +47,7 @@ pub struct GeneralSettings {
     pub show_stack_on_bookmark: bool,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, Default)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(default)]
 pub struct FormatSettings {
     pub stack_separator: String,
@@ -55,7 +55,18 @@ pub struct FormatSettings {
     pub align_separators: bool,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, Default)]
+impl Default for FormatSettings {
+    fn default() -> Self {
+        let default_separator = " - ";
+        Self {
+            stack_separator: default_separator.into(),
+            bookmarks_separator: default_separator.into(),
+            align_separators: false,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(default)]
 pub struct StyleSettings {
     pub stack_number: String,
@@ -66,6 +77,22 @@ pub struct StyleSettings {
     pub bookmarks_path: String,
 }
 
+impl Default for StyleSettings {
+    fn default() -> Self {
+        let default_number_color = "default";
+        let default_separator_color = "cyan";
+        let default_path_color = "default";
+        Self {
+            stack_number: default_number_color.into(),
+            stack_separator: default_separator_color.into(),
+            stack_path: default_path_color.into(),
+            bookmarks_name: default_number_color.into(),
+            bookmarks_seperator: default_separator_color.into(),
+            bookmarks_path: default_path_color.into(),
+        }
+    }
+}
+
 impl Config {
     const CONFIG_FILE_NAME: &str = "navigate.conf";
 
@@ -73,26 +100,7 @@ impl Config {
     pub fn new() -> Result<Self> {
         let mut config = Config {
             conf_file: PathBuf::new(),
-            settings: Settings {
-                general: GeneralSettings {
-                    show_stack_on_push: false,
-                    show_stack_on_pop: false,
-                    show_stack_on_bookmark: false,
-                },
-                format: FormatSettings {
-                    bookmarks_separator: String::new(),
-                    stack_separator: String::new(),
-                    align_separators: false,
-                },
-                styles: StyleSettings {
-                    stack_number: String::new(),
-                    stack_separator: String::new(),
-                    stack_path: String::new(),
-                    bookmarks_name: String::new(),
-                    bookmarks_seperator: String::new(),
-                    bookmarks_path: String::new(),
-                },
-            },
+            settings: Settings::default(),
         };
         // get configuration directory
         config.conf_file = match config_dir() {
@@ -110,7 +118,6 @@ impl Config {
 
         // parse configuration file and populate config struct
         let file_error = config.build_settings();
-        config.set_default_settings()?;
         if file_error.is_err() {
             config.write_config_file()?;
         }
@@ -141,42 +148,6 @@ impl Config {
             Ok(value) => value,
             Err(error) => return Err(Error::other(error.to_string())),
         };
-        Ok(())
-    }
-
-    /// sets defaults for settings not found in the configuration file
-    fn set_default_settings(&mut self) -> Result<()> {
-        let default_separator = " - ".to_owned();
-        let default_number_color = "default".to_owned();
-        let default_separator_color = "cyan".to_owned();
-        let default_path_color = "default".to_owned();
-
-        if self.settings.format.stack_separator.is_empty() {
-            self.settings.format.stack_separator = default_separator.clone();
-        }
-        if self.settings.format.bookmarks_separator.is_empty() {
-            self.settings.format.bookmarks_separator = default_separator.clone();
-        }
-
-        if self.settings.styles.stack_number.is_empty() {
-            self.settings.styles.stack_number = default_number_color.clone();
-        }
-        if self.settings.styles.stack_separator.is_empty() {
-            self.settings.styles.stack_separator = default_separator_color.clone();
-        }
-        if self.settings.styles.stack_path.is_empty() {
-            self.settings.styles.stack_path = default_path_color.clone();
-        }
-        if self.settings.styles.bookmarks_name.is_empty() {
-            self.settings.styles.bookmarks_name = default_number_color.clone();
-        }
-        if self.settings.styles.bookmarks_seperator.is_empty() {
-            self.settings.styles.bookmarks_seperator = default_separator_color.clone();
-        }
-        if self.settings.styles.bookmarks_path.is_empty() {
-            self.settings.styles.bookmarks_path = default_path_color.clone();
-        }
-
         Ok(())
     }
 
